@@ -18,7 +18,12 @@ func InitDB() {
 	}
 
 	// Автоматическая миграция
-	if err := DB.AutoMigrate(&models.Message{}); err != nil {
+	err = DB.AutoMigrate(
+		&models.User{},
+		&models.TodoList{},
+		&models.Task{},
+	)
+	if err != nil {
 		log.Fatalf("Не удалось выполнить миграцию: %v", err)
 	}
 }

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"RestAPI/responses"
+	"errors"
 	"github.com/labstack/echo"
 	"strconv"
 )
@@ -13,7 +14,14 @@ func JSONResponse(c echo.Context, statusCode int, status, message string) error 
 	})
 }
 
-func GetIDParam(c echo.Context) (int, error) {
-	idParam := c.Param("id")
-	return strconv.Atoi(idParam)
+func GetParam(c echo.Context, key string) (int, error) {
+	idParam := c.Param(key)
+	if idParam == "" {
+		return 0, errors.New("id parameter is missing")
+	}
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		return 0, errors.New("invalid id parameter")
+	}
+	return id, nil
 }
