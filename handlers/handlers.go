@@ -10,7 +10,6 @@ import (
 	"net/http"
 )
 
-// GetTodoListHandler - обработчик получения всех списков
 func GetTodoListHandler(c echo.Context) error {
 	var todoLists []models.TodoList
 
@@ -22,7 +21,6 @@ func GetTodoListHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, todoLists)
 }
 
-// PostTodoListHandler - обработчик создания списка
 func PostTodoListHandler(c echo.Context) error {
 	// 1. Структура запроса
 	type CreateTodoListRequest struct {
@@ -57,7 +55,6 @@ func PostTodoListHandler(c echo.Context) error {
 	return utils.JSONResponse(c, http.StatusCreated, "ok", "TodoList was successfully created")
 }
 
-// PatchTodoListHandler - обработчик обновления списка
 func PatchTodoListHandler(c echo.Context) error {
 	id, err := utils.GetParam(c, "id")
 	if err != nil {
@@ -141,7 +138,6 @@ func GetTasksByListHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, tasks)
 }
 
-// PostTaskHandler - обработчик создания таска
 func PostTaskHandler(c echo.Context) error {
 	// 1. Получение list_id из URL
 	listID, err := utils.GetParam(c, "list_id")
@@ -183,7 +179,6 @@ func PostTaskHandler(c echo.Context) error {
 	return utils.JSONResponse(c, http.StatusCreated, "ok", "Task was successfully created")
 }
 
-// PatchTaskHandler - обработчик обновления таска
 func PatchTaskHandler(c echo.Context) error {
 	// 1. Получаем task id из URL
 	taskID, err := utils.GetParam(c, "id")
@@ -233,7 +228,6 @@ func PatchTaskHandler(c echo.Context) error {
 	return utils.JSONResponse(c, http.StatusOK, "ok", "Task was successfully updated")
 }
 
-// DeleteTaskHandler - обработчик удаления таска
 func DeleteTaskHandler(c echo.Context) error {
 	id, err := utils.GetParam(c, "id")
 	if err != nil {
