@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"RestAPI/config"
-	"RestAPI/models"
+	"RestAPI/service"
 	"RestAPI/utils"
 	"errors"
 	"github.com/labstack/echo"
@@ -10,240 +9,178 @@ import (
 	"net/http"
 )
 
-func GetTodoListHandler(c echo.Context) error {
-	var todoLists []models.TodoList
+type TodoListHandler interface {
+	GetTodoListHandler(c echo.Context) error
+	PostTodoListHandler(c echo.Context) error
+	PatchTodoListHandler(c echo.Context) error
+	DeleteTodoListHandler(c echo.Context) error
+}
 
-	// Использование Preload для загрузки связанных задач
-	if err := config.DB.Preload("Tasks").Find(&todoLists).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not find the lists")
+type todoListHandler struct {
+	todoListService service.TodoListService
+}
+
+func NewTodoListHandler(todoListService service.TodoListService) TodoListHandler {
+	return &todoListHandler{todoListService: todoListService}
+}
+
+func (h *todoListHandler) GetTodoListHandler(c echo.Context) error {
+	todoLists, err := h.todoListService.GetAllLists()
+	if err != nil {
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not fetch todo lists")
 	}
-
 	return c.JSON(http.StatusOK, todoLists)
 }
 
-func PostTodoListHandler(c echo.Context) error {
-	// 1. Структура запроса
+func (h *todoListHandler) PostTodoListHandler(c echo.Context) error {
 	type CreateTodoListRequest struct {
 		Title  string `json:"title"`
 		UserID int    `json:"user_id"`
 	}
 
-	// 2. Создаем экземпляр структуры
-	var createListRequest CreateTodoListRequest
-
-	// 3. Привязка JSON с полями структуры
-	if err := c.Bind(&createListRequest); err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not bind the request body")
+	var req CreateTodoListRequest
+	if err := c.Bind(&req); err != nil {
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
 
-	// 4. Проверка user_id
-	if createListRequest.UserID <= 0 {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "User ID is not valid")
+	err := h.todoListService.CreateList(req.Title, req.UserID)
+	if err != nil {
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", err.Error())
 	}
-
-	// 5. Создание TodoList в БД
-	newList := models.TodoList{
-		Title:  createListRequest.Title,
-		UserID: createListRequest.UserID,
-	}
-
-	if err := config.DB.Create(&newList).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not create the list")
-	}
-
-	// 6. Возвращаем успешный ответ
 	return utils.JSONResponse(c, http.StatusCreated, "ok", "TodoList was successfully created")
 }
 
-func PatchTodoListHandler(c echo.Context) error {
+func (h *todoListHandler) PatchTodoListHandler(c echo.Context) error {
 	id, err := utils.GetParam(c, "id")
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad ID")
 	}
 
-	// 1. Структура для запроса
 	type UpdateTodoListRequest struct {
 		Title string `json:"title"`
 	}
 
-	// 2. Создаем экземпляр
-	var updateRequest UpdateTodoListRequest
-
-	// 3. Привязка данных из запроса
-	if err := c.Bind(&updateRequest); err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not bind the request body")
+	var req UpdateTodoListRequest
+	if err := c.Bind(&req); err != nil {
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
 
-	// 4. Проверка title
-	if updateRequest.Title == "" {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Title is required")
+	if err := h.todoListService.UpdateList(id, req.Title); err != nil {
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", err.Error())
 	}
-
-	// 5. Обновляем данные в базе данных
-	var todoList models.TodoList
-	if err := config.DB.First(&todoList, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utils.JSONResponse(c, http.StatusBadRequest, "error", "TodoList with this ID does not exist")
-		}
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Error finding TodoList")
-	}
-
-	todoList.Title = updateRequest.Title
-	if err := config.DB.Save(&todoList).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not update the list")
-	}
-
-	return utils.JSONResponse(c, http.StatusOK, "ok", "TodoList was successfully updated")
+	return utils.JSONResponse(c, http.StatusOK, "ok", "List updated successfully")
 }
 
-func DeleteTodoListHandler(c echo.Context) error {
+func (h *todoListHandler) DeleteTodoListHandler(c echo.Context) error {
 	id, err := utils.GetParam(c, "id")
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad ID")
 	}
 
-	var todoList models.TodoList
-	if err := config.DB.Preload("Tasks").First(&todoList, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utils.JSONResponse(c, http.StatusBadRequest, "error", "TodoList with this ID does not exist")
-		}
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Error finding TodoList")
+	if err := h.todoListService.DeleteList(id); err != nil {
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", err.Error())
 	}
-	// 1. Удаление связанных тасков
-	if len(todoList.Tasks) > 0 {
-		if err := config.DB.Delete(&todoList.Tasks).Error; err != nil {
-			return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not delete tasks of this list")
-		}
-	}
-	// 2. Удаление списка Todo
-	if err := config.DB.Delete(&todoList).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not delete the list")
-	}
-
-	return utils.JSONResponse(c, http.StatusOK, "ok", "List was successfully deleted")
+	return utils.JSONResponse(c, http.StatusOK, "ok", "List deleted successfully")
 }
 
-func GetTasksByListHandler(c echo.Context) error {
+type TaskHandler interface {
+	GetTasksByListHandler(c echo.Context) error
+	PostTaskHandler(c echo.Context) error
+	PatchTaskHandler(c echo.Context) error
+	DeleteTaskHandler(c echo.Context) error
+}
+
+type taskHandler struct {
+	taskService     service.TaskService
+	todoListService service.TodoListService
+}
+
+func NewTaskHandler(taskService service.TaskService, todoListService service.TodoListService) TaskHandler {
+	return &taskHandler{taskService: taskService,
+		todoListService: todoListService}
+}
+
+func (h *taskHandler) GetTasksByListHandler(c echo.Context) error {
 	listID, err := utils.GetParam(c, "list_id")
 	if err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad list ID")
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid list ID")
 	}
 
-	var tasks []models.Task
-
-	if err := config.DB.Where("list_id = ?", listID).Find(&tasks).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not find the tasks")
+	tasks, err := h.taskService.GetAllTasksForList(listID)
+	if err != nil {
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not fetch tasks for the list")
 	}
 
 	return c.JSON(http.StatusOK, tasks)
 }
 
-func PostTaskHandler(c echo.Context) error {
-	// 1. Получение list_id из URL
+func (h *taskHandler) PostTaskHandler(c echo.Context) error {
 	listID, err := utils.GetParam(c, "list_id")
 	if err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad list ID")
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid list ID")
 	}
 
-	// 2. Проверка, что лист с таким ID существует
-	var list models.TodoList
-	if err := config.DB.First(&list, listID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utils.JSONResponse(c, http.StatusBadRequest, "error", "TodoList with this ID does not exist")
-		}
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Error checking TodoList")
+	_, err = h.todoListService.GetListByID(listID)
+	if err != nil {
+		return utils.JSONResponse(c, http.StatusNotFound, "error", "TodoList with this ID does not exist")
 	}
 
-	// 3. Структура для запроса
 	type CreateTaskRequest struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 	}
 
-	var taskReq CreateTaskRequest
-	if err := c.Bind(&taskReq); err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not bind the request body")
+	var req CreateTaskRequest
+	if err := c.Bind(&req); err != nil {
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
 
-	// 4. Создание таска
-	newTask := models.Task{
-		Title:       taskReq.Title,
-		Description: taskReq.Description,
-		ListID:      listID,
-		Completed:   false,
+	err = h.taskService.CreateTask(req.Title, req.Description, listID)
+	if err != nil {
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not create task")
 	}
-	// 5. Создаем запись в базе
-	if err := config.DB.Create(&newTask).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not create the task")
-	}
+
 	return utils.JSONResponse(c, http.StatusCreated, "ok", "Task was successfully created")
 }
 
-func PatchTaskHandler(c echo.Context) error {
-	// 1. Получаем task id из URL
+func (h *taskHandler) PatchTaskHandler(c echo.Context) error {
 	taskID, err := utils.GetParam(c, "id")
 	if err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad task ID")
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid task ID")
 	}
 
-	// 2. Структура для запроса
 	type UpdateTaskRequest struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
-		Completed   bool   `json:"completed"`
+		Completed   *bool  `json:"completed"`
 	}
 
-	// 3. Создаем экземпляр структуры
-	var updateRequest UpdateTaskRequest
-
-	// 4. Связывание данных из запроса
-	if err := c.Bind(&updateRequest); err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not bind the request body")
+	var req UpdateTaskRequest
+	if err := c.Bind(&req); err != nil {
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
 
-	// 5. Обновляем данные
-	var task models.Task
-	if err := config.DB.First(&task, taskID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utils.JSONResponse(c, http.StatusBadRequest, "error", "Task with this ID does not exist")
-		}
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Error finding Task")
+	err = h.taskService.UpdateTask(taskID, req.Title, req.Description, req.Completed)
+	if err != nil {
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", err.Error())
 	}
 
-	if updateRequest.Title != "" {
-		task.Title = updateRequest.Title
-	}
-	if updateRequest.Description != "" {
-		task.Description = updateRequest.Description
-	}
-
-	if c.Request().Body != nil {
-		task.Completed = updateRequest.Completed
-	}
-
-	if err := config.DB.Save(&task).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not update the task")
-	}
-
-	return utils.JSONResponse(c, http.StatusOK, "ok", "Task was successfully updated")
+	return utils.JSONResponse(c, http.StatusOK, "ok", "Task updated successfully")
 }
 
-func DeleteTaskHandler(c echo.Context) error {
-	id, err := utils.GetParam(c, "id")
+func (h *taskHandler) DeleteTaskHandler(c echo.Context) error {
+	taskID, err := utils.GetParam(c, "id")
 	if err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad ID")
+		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid task ID")
 	}
 
-	var task models.Task
-	if err := config.DB.First(&task, id).Error; err != nil {
+	err = h.taskService.DeleteTask(taskID)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utils.JSONResponse(c, http.StatusBadRequest, "error", "Task with this ID does not exist")
+			return utils.JSONResponse(c, http.StatusNotFound, "error", "Task with this ID does not exist")
 		}
-		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Error finding Task")
+		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not delete the task")
 	}
 
-	if err := config.DB.Delete(&task).Error; err != nil {
-		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Could not delete the task")
-	}
-	return utils.JSONResponse(c, http.StatusOK, "ok", "Task was successfully deleted")
+	return utils.JSONResponse(c, http.StatusOK, "ok", "Task deleted successfully")
 }
