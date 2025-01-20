@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+const secretKey = "triss-merigold"
+const tokenExpiry = time.Hour * 24
+
 func SetupRoutes() *echo.Echo {
 	e := echo.New()
 
@@ -22,8 +25,6 @@ func SetupRoutes() *echo.Echo {
 
 	todoListService := service.NewTodoListService(todoListRepo)
 	taskService := service.NewTaskService(taskRepo)
-	const secretKey = "triss-merigold"
-	const tokenExpiry = time.Hour * 24
 	userService := service.NewUserService(userRepo, secretKey, tokenExpiry)
 
 	todoListHandler := handlers.NewTodoListHandler(todoListService)
@@ -38,7 +39,7 @@ func SetupRoutes() *echo.Echo {
 
 	// Защищенные маршруты
 	protected := e.Group("")
-	protected.Use(middleware.JWTMiddleware(secretKey)) // Применение middleware для проверки JWT
+	protected.Use(middleware.JWTMiddleware(secretKey))
 
 	// Теперь эти маршруты защищены и требуют токена
 	protected.GET("/todolists", todoListHandler.GetTodoListHandler)
