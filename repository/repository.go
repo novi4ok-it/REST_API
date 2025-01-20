@@ -7,8 +7,8 @@ import (
 )
 
 type TodoListRepository interface {
-	GetAllLists() ([]models.TodoList, error)
-	GetListByID(id int) (*models.TodoList, error)
+	GetAllLists(userID int) ([]models.TodoList, error)
+	GetListByID(listID int, userID int) (*models.TodoList, error)
 	CreateList(todoList *models.TodoList) error
 	UpdateList(todoList *models.TodoList) error
 	DeleteList(todoList *models.TodoList) error
@@ -23,15 +23,15 @@ func NewTodoListRepository(db *gorm.DB) TodoListRepository {
 	return &todoListRepository{DB: db}
 }
 
-func (r *todoListRepository) GetAllLists() ([]models.TodoList, error) {
+func (r *todoListRepository) GetAllLists(userID int) ([]models.TodoList, error) {
 	var todoLists []models.TodoList
-	err := r.DB.Preload("Tasks").Find(&todoLists).Error
+	err := r.DB.Preload("Tasks").Where("user_id = ?", userID).Find(&todoLists).Error
 	return todoLists, err
 }
 
-func (r *todoListRepository) GetListByID(id int) (*models.TodoList, error) {
+func (r *todoListRepository) GetListByID(listID int, userID int) (*models.TodoList, error) {
 	var todoList models.TodoList
-	err := r.DB.Preload("Tasks").First(&todoList, id).Error
+	err := r.DB.Preload("Tasks").Where("user_id = ?", userID).First(&todoList, listID).Error
 	return &todoList, err
 }
 
@@ -56,8 +56,8 @@ type taskRepository struct {
 }
 
 type TaskRepository interface {
-	GetAllTasksForThisList(listID int) ([]models.Task, error)
-	GetTaskByID(taskID int) (*models.Task, error)
+	GetAllTasksForThisList(listID int, userID int) ([]models.Task, error)
+	GetTaskByID(taskID int, userID int) (*models.Task, error)
 	CreateTask(task *models.Task) error
 	UpdateTask(task *models.Task) error
 	DeleteTask(task *models.Task) error
@@ -67,15 +67,21 @@ func NewTaskRepository(db *gorm.DB) TaskRepository {
 	return &taskRepository{DB: db}
 }
 
-func (r *taskRepository) GetAllTasksForThisList(listID int) ([]models.Task, error) {
+func (r *taskRepository) GetAllTasksForThisList(listID int, userID int) ([]models.Task, error) {
 	var tasks []models.Task
-	err := r.DB.Where("list_id = ?", listID).Find(&tasks).Error
+	err := r.DB.Joins("JOIN todo_lists ON todo_lists.id = tasks.list_id").
+		Where("todo_lists.user_id = ?", userID).
+		Where("tasks.list_id = ?", listID).
+		Find(&tasks).Error
 	return tasks, err
 }
 
-func (r *taskRepository) GetTaskByID(taskID int) (*models.Task, error) {
+func (r *taskRepository) GetTaskByID(taskID int, userID int) (*models.Task, error) {
 	var task models.Task
-	err := r.DB.First(&task, taskID).Error
+	err := r.DB.Joins("JOIN todo_lists ON todo_lists.id = tasks.list_id").
+		Where("todo_lists.user_id = ?", userID).
+		Where("tasks.id = ?", taskID).
+		First(&task).Error
 	return &task, err
 }
 

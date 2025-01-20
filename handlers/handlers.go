@@ -27,7 +27,11 @@ func NewTodoListHandler(todoListService service.TodoListService) TodoListHandler
 }
 
 func (h *todoListHandler) GetTodoListHandler(c echo.Context) error {
-	todoLists, err := h.todoListService.GetAllLists()
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	todoLists, err := h.todoListService.GetAllLists(int(userID))
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not fetch todo lists")
 	}
@@ -36,16 +40,18 @@ func (h *todoListHandler) GetTodoListHandler(c echo.Context) error {
 
 func (h *todoListHandler) PostTodoListHandler(c echo.Context) error {
 	type CreateTodoListRequest struct {
-		Title  string `json:"title"`
-		UserID int    `json:"user_id"`
+		Title string `json:"title"`
 	}
 
 	var req CreateTodoListRequest
 	if err := c.Bind(&req); err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
-
-	err := h.todoListService.CreateList(req.Title, req.UserID)
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	err := h.todoListService.CreateList(req.Title, int(userID))
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", err.Error())
 	}
@@ -53,7 +59,7 @@ func (h *todoListHandler) PostTodoListHandler(c echo.Context) error {
 }
 
 func (h *todoListHandler) PatchTodoListHandler(c echo.Context) error {
-	id, err := utils.GetParam(c, "id")
+	listID, err := utils.GetParam(c, "id")
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad ID")
 	}
@@ -66,20 +72,29 @@ func (h *todoListHandler) PatchTodoListHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
-
-	if err := h.todoListService.UpdateList(id, req.Title); err != nil {
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	if err := h.todoListService.UpdateList(listID, int(userID), req.Title); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.JSONResponse(c, http.StatusNotFound, "error", "Todo list not found")
+		}
 		return utils.JSONResponse(c, http.StatusInternalServerError, "error", err.Error())
 	}
 	return utils.JSONResponse(c, http.StatusOK, "ok", "List updated successfully")
 }
 
 func (h *todoListHandler) DeleteTodoListHandler(c echo.Context) error {
-	id, err := utils.GetParam(c, "id")
+	listID, err := utils.GetParam(c, "id")
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Bad ID")
 	}
-
-	if err := h.todoListService.DeleteList(id); err != nil {
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	if err := h.todoListService.DeleteList(listID, int(userID)); err != nil {
 		return utils.JSONResponse(c, http.StatusInternalServerError, "error", err.Error())
 	}
 	return utils.JSONResponse(c, http.StatusOK, "ok", "List deleted successfully")
@@ -107,8 +122,11 @@ func (h *taskHandler) GetTasksByListHandler(c echo.Context) error {
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid list ID")
 	}
-
-	tasks, err := h.taskService.GetAllTasksForList(listID)
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	tasks, err := h.taskService.GetAllTasksForList(listID, int(userID))
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusInternalServerError, "error", "Could not fetch tasks for the list")
 	}
@@ -121,8 +139,11 @@ func (h *taskHandler) PostTaskHandler(c echo.Context) error {
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid list ID")
 	}
-
-	_, err = h.todoListService.GetListByID(listID)
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	_, err = h.todoListService.GetListByID(listID, int(userID)) //На этом уровне идёт проверка, принадлежит ли данный лист этому пользователю
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusNotFound, "error", "TodoList with this ID does not exist")
 	}
@@ -161,8 +182,11 @@ func (h *taskHandler) PatchTaskHandler(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid request body")
 	}
-
-	err = h.taskService.UpdateTask(taskID, req.Title, req.Description, req.Completed)
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	err = h.taskService.UpdateTask(taskID, int(userID), req.Title, req.Description, req.Completed)
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusInternalServerError, "error", err.Error())
 	}
@@ -175,8 +199,11 @@ func (h *taskHandler) DeleteTaskHandler(c echo.Context) error {
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid task ID")
 	}
-
-	err = h.taskService.DeleteTask(taskID)
+	userID, ok := c.Get("user_id").(float64) // JWT Claims возвращают float64 для чисел
+	if !ok {
+		return utils.JSONResponse(c, http.StatusUnauthorized, "error", "Invalid or missing token")
+	}
+	err = h.taskService.DeleteTask(taskID, int(userID))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utils.JSONResponse(c, http.StatusNotFound, "error", "Task with this ID does not exist")

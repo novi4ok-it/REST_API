@@ -9,7 +9,7 @@ type User struct {
 type TodoList struct {
 	ID     int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Title  string `json:"title"`
-	UserID int    `json:"user_id" gorm:"index;foreignKey:UserID"`
+	UserID int    `json:"-" gorm:"index;foreignKey:UserID"`
 	Tasks  []Task `json:"tasks" gorm:"foreignKey:ListID"`
 }
 
@@ -18,5 +18,5 @@ type Task struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Completed   bool   `json:"completed"`
-	ListID      int    `json:"list_id"`
+	ListID      int    `json:"-"`
 }

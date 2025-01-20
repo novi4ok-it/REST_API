@@ -10,11 +10,11 @@ import (
 )
 
 type TodoListService interface {
-	GetAllLists() ([]models.TodoList, error)
-	GetListByID(id int) (*models.TodoList, error)
+	GetAllLists(userID int) ([]models.TodoList, error)
+	GetListByID(listID int, userID int) (*models.TodoList, error)
 	CreateList(title string, userID int) error
-	UpdateList(id int, title string) error
-	DeleteList(id int) error
+	UpdateList(listID int, userID int, title string) error
+	DeleteList(listID int, userID int) error
 }
 
 type todoListService struct {
@@ -25,12 +25,15 @@ func NewTodoListService(repo repository.TodoListRepository) TodoListService {
 	return &todoListService{repo: repo}
 }
 
-func (s *todoListService) GetAllLists() ([]models.TodoList, error) {
-	return s.repo.GetAllLists()
+func (s *todoListService) GetAllLists(userID int) ([]models.TodoList, error) {
+	return s.repo.GetAllLists(userID)
 }
 
-func (s *todoListService) GetListByID(id int) (*models.TodoList, error) {
-	return s.repo.GetListByID(id)
+func (s *todoListService) GetListByID(listID int, userID int) (*models.TodoList, error) {
+	if listID <= 0 {
+		return nil, errors.New("invalid list ID")
+	}
+	return s.repo.GetListByID(listID, userID)
 }
 
 func (s *todoListService) CreateList(title string, userID int) error {
@@ -45,8 +48,8 @@ func (s *todoListService) CreateList(title string, userID int) error {
 	return err
 }
 
-func (s *todoListService) UpdateList(id int, title string) error {
-	list, err := s.repo.GetListByID(id)
+func (s *todoListService) UpdateList(listID int, userID int, title string) error {
+	list, err := s.GetListByID(listID, userID)
 	if err != nil {
 		return err
 	}
@@ -54,8 +57,8 @@ func (s *todoListService) UpdateList(id int, title string) error {
 	return s.repo.UpdateList(list)
 }
 
-func (s *todoListService) DeleteList(id int) error {
-	list, err := s.repo.GetListByID(id)
+func (s *todoListService) DeleteList(listID int, userID int) error {
+	list, err := s.GetListByID(listID, userID)
 	if err != nil {
 		return err
 	}
@@ -66,11 +69,11 @@ func (s *todoListService) DeleteList(id int) error {
 }
 
 type TaskService interface {
-	GetAllTasksForList(listID int) ([]models.Task, error)
-	GetTaskByID(taskID int) (*models.Task, error)
+	GetAllTasksForList(listID int, userID int) ([]models.Task, error)
+	GetTaskByID(taskID int, userID int) (*models.Task, error)
 	CreateTask(title string, description string, listID int) error
-	UpdateTask(taskID int, title string, description string, isCompleted *bool) error
-	DeleteTask(taskID int) error
+	UpdateTask(taskID int, userID int, title string, description string, isCompleted *bool) error
+	DeleteTask(taskID int, userID int) error
 }
 
 func NewTaskService(repo repository.TaskRepository) TaskService {
@@ -81,18 +84,18 @@ type taskService struct {
 	repo repository.TaskRepository
 }
 
-func (s *taskService) GetAllTasksForList(listID int) ([]models.Task, error) {
+func (s *taskService) GetAllTasksForList(listID int, userID int) ([]models.Task, error) {
 	if listID <= 0 {
 		return nil, errors.New("invalid list ID")
 	}
-	return s.repo.GetAllTasksForThisList(listID)
+	return s.repo.GetAllTasksForThisList(listID, userID)
 }
 
-func (s *taskService) GetTaskByID(taskID int) (*models.Task, error) {
+func (s *taskService) GetTaskByID(taskID int, userID int) (*models.Task, error) {
 	if taskID <= 0 {
 		return nil, errors.New("invalid task ID")
 	}
-	return s.repo.GetTaskByID(taskID)
+	return s.repo.GetTaskByID(taskID, userID)
 }
 
 func (s *taskService) CreateTask(title string, description string, listID int) error {
@@ -117,8 +120,8 @@ func (s *taskService) CreateTask(title string, description string, listID int) e
 	return err
 }
 
-func (s *taskService) UpdateTask(taskID int, title string, description string, isCompleted *bool) error {
-	task, err := s.repo.GetTaskByID(taskID)
+func (s *taskService) UpdateTask(taskID int, userID int, title string, description string, isCompleted *bool) error {
+	task, err := s.GetTaskByID(taskID, userID)
 	if err != nil {
 		return err
 	}
@@ -137,8 +140,8 @@ func (s *taskService) UpdateTask(taskID int, title string, description string, i
 	return s.repo.UpdateTask(task)
 }
 
-func (s *taskService) DeleteTask(taskID int) error {
-	task, err := s.repo.GetTaskByID(taskID)
+func (s *taskService) DeleteTask(taskID int, userID int) error {
+	task, err := s.GetTaskByID(taskID, userID)
 	if err != nil {
 		return err
 	}
