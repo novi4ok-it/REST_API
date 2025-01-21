@@ -1,23 +1,19 @@
 package routes
 
 import (
-	"RestAPI/config"
 	"RestAPI/handlers"
 	"RestAPI/middleware"
 	"RestAPI/repository"
 	"RestAPI/service"
 	"github.com/labstack/echo"
+	"gorm.io/gorm"
 	"time"
 )
 
 const secretKey = "triss-merigold"
 const tokenExpiry = time.Hour * 24
 
-func SetupRoutes() *echo.Echo {
-	e := echo.New()
-
-	config.InitDB()
-	db := config.DB
+func SetupRoutes(e *echo.Echo, db *gorm.DB) *echo.Echo {
 
 	todoListRepo := repository.NewTodoListRepository(db)
 	taskRepo := repository.NewTaskRepository(db)

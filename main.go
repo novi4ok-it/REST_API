@@ -3,6 +3,6 @@ package main
 import "RestAPI/application"
 
 func main() {
-	application := application.NewApplication()
+	application := application.NewApp()
 	application.Run()
 }
