@@ -1,0 +1,511 @@
+definitions:
+  handlers.CreateTaskRequest:
+    properties:
+      description:
+        description: |-
+          Description of the task
+          example: Milk, eggs, bread
+        type: string
+      title:
+        description: |-
+          Title of the task
+          required: true
+          example: Buy groceries
+        type: string
+    type: object
+  handlers.CreateTodoListRequest:
+    properties:
+      title:
+        description: |-
+          Title of the todo list
+          required: true
+          example: My Shopping List
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      password:
+        description: |-
+          Password for login
+          required: true
+          example: P@ssw0rd!
+        type: string
+      username:
+        description: |-
+          Username for login
+          required: true
+          example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      password:
+        description: |-
+          Password for registration
+          required: true
+          example: P@ssw0rd!
+        type: string
+      username:
+        description: |-
+          Username for registration
+          required: true
+          example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handlers.UpdateTaskRequest:
+    properties:
+      completed:
+        description: |-
+          New completion status
+          example: true
+        type: boolean
+      description:
+        description: |-
+          New description for the task
+          example: 2 liters of organic milk
+        type: string
+      title:
+        description: |-
+          New title for the task
+          example: Buy organic milk
+        type: string
+    type: object
+  handlers.UpdateTodoListRequest:
+    properties:
+      title:
+        description: |-
+          New title for the list
+          required: true
+          example: Updated Shopping List
+        type: string
+    type: object
+  models.Task:
+    properties:
+      completed:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: integer
+      title:
+        description: |-
+          Title of the task
+          required: true
+          example: Buy milk
+        type: string
+    type: object
+  models.TodoList:
+    properties:
+      id:
+        type: integer
+      tasks:
+        items:
+          $ref: '#/definitions/models.Task'
+        type: array
+      title:
+        description: |-
+          Title of the list
+          required: true
+          example: Shopping List
+        type: string
+    type: object
+  responses.Response:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and get JWT token
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      summary: User login
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Create new user account
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      summary: User registration
+      tags:
+      - auth
+  /todolists:
+    get:
+      description: Retrieve all todo lists for authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TodoList'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Get all todo lists
+      tags:
+      - todolists
+    post:
+      consumes:
+      - application/json
+      description: Create new todo list for authenticated user
+      parameters:
+      - description: List data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTodoListRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Create new todo list
+      tags:
+      - todolists
+  /todolists/{id}:
+    delete:
+      description: Delete todo list and all its tasks
+      parameters:
+      - description: Todo List ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Delete todo list
+      tags:
+      - todolists
+    patch:
+      consumes:
+      - application/json
+      description: Update title of existing todo list
+      parameters:
+      - description: Todo List ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New title
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTodoListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Update todo list
+      tags:
+      - todolists
+  /todolists/{list_id}/tasks:
+    get:
+      description: Get all tasks for specified todo list
+      parameters:
+      - description: Todo List ID
+        in: path
+        name: list_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Get tasks by list
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Create new task in specified todo list
+      parameters:
+      - description: Todo List ID
+        in: path
+        name: list_id
+        required: true
+        type: integer
+      - description: Task data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Create new task
+      tags:
+      - tasks
+  /todolists/{list_id}/tasks/{id}:
+    delete:
+      description: Delete task from todo list
+      parameters:
+      - description: Todo List ID
+        in: path
+        name: list_id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Delete task
+      tags:
+      - tasks
+    patch:
+      consumes:
+      - application/json
+      description: Update task details (title, description, completed status)
+      parameters:
+      - description: Todo List ID
+        in: path
+        name: list_id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.Response'
+      security:
+      - Bearer: []
+      summary: Update task
+      tags:
+      - tasks
+swagger: "2.0"

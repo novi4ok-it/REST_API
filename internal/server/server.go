@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
 	"os"

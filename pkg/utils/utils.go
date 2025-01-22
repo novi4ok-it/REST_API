@@ -3,7 +3,7 @@ package utils
 import (
 	"RestAPI/internal/responses"
 	"errors"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"strconv"
 )
 

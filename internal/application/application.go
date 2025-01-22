@@ -6,7 +6,7 @@ import (
 	"RestAPI/internal/server"
 	"RestAPI/pkg/validator"
 	"context"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"time"
 )
 

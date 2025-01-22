@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"RestAPI/pkg/utils"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"

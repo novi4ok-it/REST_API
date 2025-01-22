@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	service2 "RestAPI/internal/service"
+	service "RestAPI/internal/service"
 	"RestAPI/pkg/utils"
 	"errors"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -17,15 +17,57 @@ type TaskHandler interface {
 }
 
 type taskHandler struct {
-	taskService     service2.TaskService
-	todoListService service2.TodoListService
+	taskService     service.TaskService
+	todoListService service.TodoListService
 }
 
-func NewTaskHandler(taskService service2.TaskService, todoListService service2.TodoListService) TaskHandler {
+func NewTaskHandler(taskService service.TaskService, todoListService service.TodoListService) TaskHandler {
 	return &taskHandler{taskService: taskService,
 		todoListService: todoListService}
 }
 
+// CreateTaskRequest represents data for creating new task
+// swagger:model
+type CreateTaskRequest struct {
+	// Title of the task
+	// required: true
+	// example: Buy groceries
+	Title string `json:"title"`
+
+	// Description of the task
+	// example: Milk, eggs, bread
+	Description string `json:"description"`
+}
+
+// UpdateTaskRequest model
+// swagger:model
+type UpdateTaskRequest struct {
+	// New title for the task
+	// example: Buy organic milk
+	Title string `json:"title"`
+
+	// New description for the task
+	// example: 2 liters of organic milk
+	Description string `json:"description"`
+
+	// New completion status
+	// example: true
+	Completed *bool `json:"completed"`
+}
+
+// GetTasksByListHandler godoc
+// @Summary Get tasks by list
+// @Description Get all tasks for specified todo list
+// @Tags tasks
+// @Security Bearer
+// @Produce json
+// @Param list_id path int true "Todo List ID"
+// @Success 200 {array} models.Task
+// @Failure 400 {object} responses.Response
+// @Failure 401 {object} responses.Response
+// @Failure 404 {object} responses.Response
+// @Failure 500 {object} responses.Response
+// @Router /todolists/{list_id}/tasks [get]
 func (h *taskHandler) GetTasksByListHandler(c echo.Context) error {
 	listID, err := utils.GetParam(c, "list_id")
 	if err != nil {
@@ -43,6 +85,21 @@ func (h *taskHandler) GetTasksByListHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, tasks)
 }
 
+// PostTaskHandler godoc
+// @Summary Create new task
+// @Description Create new task in specified todo list
+// @Tags tasks
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Param list_id path int true "Todo List ID"
+// @Param request body handlers.CreateTaskRequest true "Task data"
+// @Success 201 {object} responses.Response
+// @Failure 400 {object} responses.Response
+// @Failure 401 {object} responses.Response
+// @Failure 404 {object} responses.Response
+// @Failure 500 {object} responses.Response
+// @Router /todolists/{list_id}/tasks [post]
 func (h *taskHandler) PostTaskHandler(c echo.Context) error {
 	listID, err := utils.GetParam(c, "list_id")
 	if err != nil {
@@ -55,11 +112,6 @@ func (h *taskHandler) PostTaskHandler(c echo.Context) error {
 	_, err = h.todoListService.GetListByID(listID, int(userID)) //На этом уровне идёт проверка, принадлежит ли данный лист этому пользователю
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusNotFound, "error", "TodoList with this ID does not exist")
-	}
-
-	type CreateTaskRequest struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
 	}
 
 	var req CreateTaskRequest
@@ -75,16 +127,26 @@ func (h *taskHandler) PostTaskHandler(c echo.Context) error {
 	return utils.JSONResponse(c, http.StatusCreated, "ok", "Task was successfully created")
 }
 
+// PatchTaskHandler godoc
+// @Summary Update task
+// @Description Update task details (title, description, completed status)
+// @Tags tasks
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Param list_id path int true "Todo List ID"
+// @Param id path int true "Task ID"
+// @Param request body handlers.UpdateTaskRequest true "Task update data"
+// @Success 200 {object} responses.Response
+// @Failure 400 {object} responses.Response
+// @Failure 401 {object} responses.Response
+// @Failure 404 {object} responses.Response
+// @Failure 500 {object} responses.Response
+// @Router /todolists/{list_id}/tasks/{id} [patch]
 func (h *taskHandler) PatchTaskHandler(c echo.Context) error {
 	taskID, err := utils.GetParam(c, "id")
 	if err != nil {
 		return utils.JSONResponse(c, http.StatusBadRequest, "error", "Invalid task ID")
-	}
-
-	type UpdateTaskRequest struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Completed   *bool  `json:"completed"`
 	}
 
 	var req UpdateTaskRequest
@@ -103,6 +165,20 @@ func (h *taskHandler) PatchTaskHandler(c echo.Context) error {
 	return utils.JSONResponse(c, http.StatusOK, "ok", "Task updated successfully")
 }
 
+// DeleteTaskHandler godoc
+// @Summary Delete task
+// @Description Delete task from todo list
+// @Tags tasks
+// @Security Bearer
+// @Produce json
+// @Param list_id path int true "Todo List ID"
+// @Param id path int true "Task ID"
+// @Success 200 {object} responses.Response
+// @Failure 400 {object} responses.Response
+// @Failure 401 {object} responses.Response
+// @Failure 404 {object} responses.Response
+// @Failure 500 {object} responses.Response
+// @Router /todolists/{list_id}/tasks/{id} [delete]
 func (h *taskHandler) DeleteTaskHandler(c echo.Context) error {
 	taskID, err := utils.GetParam(c, "id")
 	if err != nil {
