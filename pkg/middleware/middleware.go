@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"RestAPI/utils"
+	"RestAPI/pkg/utils"
 	"github.com/labstack/echo"
 	"net/http"
 

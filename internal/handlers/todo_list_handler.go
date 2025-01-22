@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"RestAPI/service"
-	"RestAPI/utils"
+	"RestAPI/internal/service"
+	"RestAPI/pkg/utils"
 	"errors"
 	"github.com/labstack/echo"
 	"gorm.io/gorm"

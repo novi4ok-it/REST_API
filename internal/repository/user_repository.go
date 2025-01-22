@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"RestAPI/models"
+	"RestAPI/internal/models"
 	"errors"
 	"gorm.io/gorm"
 )

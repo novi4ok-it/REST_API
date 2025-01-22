@@ -1,8 +1,8 @@
 package service
 
 import (
-	"RestAPI/models"
-	"RestAPI/repository"
+	"RestAPI/internal/models"
+	"RestAPI/internal/repository"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"RestAPI/service"
-	"RestAPI/utils"
+	service2 "RestAPI/internal/service"
+	"RestAPI/pkg/utils"
 	"errors"
 	"github.com/labstack/echo"
 	"gorm.io/gorm"
@@ -17,11 +17,11 @@ type TaskHandler interface {
 }
 
 type taskHandler struct {
-	taskService     service.TaskService
-	todoListService service.TodoListService
+	taskService     service2.TaskService
+	todoListService service2.TodoListService
 }
 
-func NewTaskHandler(taskService service.TaskService, todoListService service.TodoListService) TaskHandler {
+func NewTaskHandler(taskService service2.TaskService, todoListService service2.TodoListService) TaskHandler {
 	return &taskHandler{taskService: taskService,
 		todoListService: todoListService}
 }

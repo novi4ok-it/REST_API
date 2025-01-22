@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"RestAPI/handlers"
-	"RestAPI/middleware"
-	"RestAPI/repository"
-	"RestAPI/service"
+	handlers2 "RestAPI/internal/handlers"
+	repository2 "RestAPI/internal/repository"
+	service2 "RestAPI/internal/service"
+	"RestAPI/pkg/middleware"
 	"github.com/labstack/echo"
 	"gorm.io/gorm"
 	"time"
@@ -15,17 +15,17 @@ const tokenExpiry = time.Hour * 24
 
 func SetupRoutes(e *echo.Echo, db *gorm.DB) *echo.Echo {
 
-	todoListRepo := repository.NewTodoListRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
-	userRepo := repository.NewUserRepository(db)
+	todoListRepo := repository2.NewTodoListRepository(db)
+	taskRepo := repository2.NewTaskRepository(db)
+	userRepo := repository2.NewUserRepository(db)
 
-	todoListService := service.NewTodoListService(todoListRepo)
-	taskService := service.NewTaskService(taskRepo)
-	userService := service.NewUserService(userRepo, secretKey, tokenExpiry)
+	todoListService := service2.NewTodoListService(todoListRepo)
+	taskService := service2.NewTaskService(taskRepo)
+	userService := service2.NewUserService(userRepo, secretKey, tokenExpiry)
 
-	todoListHandler := handlers.NewTodoListHandler(todoListService)
-	taskHandler := handlers.NewTaskHandler(taskService, todoListService)
-	authHandler := handlers.NewAuthHandler(userService)
+	todoListHandler := handlers2.NewTodoListHandler(todoListService)
+	taskHandler := handlers2.NewTaskHandler(taskService, todoListService)
+	authHandler := handlers2.NewAuthHandler(userService)
 
 	// Маршрут для регистрации
 	e.POST("/register", authHandler.Register)

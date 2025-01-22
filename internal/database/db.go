@@ -1,7 +1,7 @@
-package config
+package database
 
 import (
-	"RestAPI/models"
+	"RestAPI/internal/models"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

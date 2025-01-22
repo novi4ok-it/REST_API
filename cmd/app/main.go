@@ -1,6 +1,8 @@
 package main
 
-import "RestAPI/application"
+import (
+	"RestAPI/internal/application"
+)
 
 func main() {
 	application := application.NewApp()

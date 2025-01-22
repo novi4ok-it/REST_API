@@ -1,4 +1,4 @@
-package config
+package database
 
 import (
 	"github.com/joho/godotenv"
@@ -34,7 +34,7 @@ func LoadConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Не удалось загрузить config.yml: %v", err)
+		log.Printf("Не удалось загрузить database.yml: %v", err)
 	}
 
 	AppConfig = Config{

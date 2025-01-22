@@ -1,10 +1,10 @@
 package application
 
 import (
-	"RestAPI/config"
-	"RestAPI/routes"
-	"RestAPI/server"
-	"RestAPI/validator"
+	"RestAPI/internal/database"
+	"RestAPI/internal/routes"
+	"RestAPI/internal/server"
+	"RestAPI/pkg/validator"
 	"context"
 	"github.com/labstack/echo"
 	"time"
@@ -16,9 +16,9 @@ type Application struct {
 
 func NewApp() *Application {
 	e := echo.New()
-	config.LoadConfig()
-	config.InitDB()
-	db := config.DB
+	database.LoadConfig()
+	database.InitDB()
+	db := database.DB
 	routes.SetupRoutes(e, db)
 	e.Validator = validator.NewValidator()
 
