@@ -2,24 +2,21 @@ version: '3.8'
 
 services:
   rest-api:
-    build: .
-    command: ./wait-for-postgres.sh db 5432 ./rest-api
-    environment:
-      - DB_PASSWORD=mysecretpassword
+    build: ./
+    command: ./wait-for-postgres.sh db ./rest-api
     ports:
-      - "8080:8080"
+      - 8080:8080
     depends_on:
       - db
+    environment:
+      - DB_PASSWORD=mysecretpassword
 
   db:
     restart: always
-    image: postgres:15-alpine
+    image: postgres:17.0
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./.database/postgres/data:/var/lib/postgresql/data
     environment:
-      POSTGRES_PASSWORD: mysecretpassword
+      - POSTGRES_PASSWORD=mysecretpassword
     ports:
-      - "5436:5432"
-
-volumes:
-  postgres_data:
+      - 5436:5432

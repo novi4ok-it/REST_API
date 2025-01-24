@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:1.23.3
 
 RUN go version
 ENV GOPATH=/
